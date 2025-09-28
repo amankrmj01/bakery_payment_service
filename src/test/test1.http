@@ -1,0 +1,291 @@
+### Test 1: Service Health Check
+
+# Test 1a: Payment Service Health
+GET http://localhost:8085/api/health
+Accept: application/json
+
+// Expected Response:
+// {
+//   "status": "UP",
+//   "service": "bakery-payment-service",
+//   "timestamp": "2025-09-28T13:29:00",
+//   "version": "1.0.0",
+//   "database": "UP",
+//   "databaseUrl": "jdbc:postgresql://localhost:5435/bakery_payments"
+// }
+
+### Test 1b: Service Info
+GET http://localhost:8085/api/info
+Accept: application/json
+
+// Expected Response:
+// {
+//   "serviceName": "Bakery Payment Service",
+//   "description": "Payment processing and gateway integration service",
+//   "version": "1.0.0",
+//   "features": {
+//     "payments": "Multi-gateway payment processing",
+//     "refunds": "Full and partial refund management",
+//     "transactions": "Complete transaction history tracking",
+//     "gateways": "Support for Stripe, PayPal, Square",
+//     "analytics": "Payment and refund analytics"
+//   },
+//   "endpoints": {
+//     "payments": "/api/payments",
+//     "refunds": "/api/refunds",
+//     "transactions": "/api/transactions"
+//   }
+// }
+
+### Test 2: Create Payment
+
+# Test 2a: Create a simple payment
+POST http://localhost:8085/api/payments
+Content-Type: application/json
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+# Expected Response:
+# {
+#   "id": "payment-uuid-here",
+#   "paymentReference": "PAY-20250928132900-1234",
+#   "orderId": "550e8400-e29b-41d4-a716-446655440000",
+#   "userId": "123e4567-e89b-12d3-a456-426614174000",
+#   "paymentMethod": "CASH",
+#   "paymentGateway": "MOCK",
+#   "status": "COMPLETED",
+#   "amount": 25.99,
+#   "currencyCode": "USD",
+#   "description": "Test cash payment",
+#   "createdAt": "2025-09-28T13:29:00",
+#   "transactions": [...],
+#   "refunds": [],
+#   "canBeRefunded": true,
+#   "totalRefundedAmount": 0.00,
+#   "refundableAmount": 25.99
+# }
+
+{
+  "orderId": "5446073c-525c-4d33-8d89-686a0309c86d",
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "paymentMethod": "CASH",
+  "amount": 49.66,
+  "currencyCode": "USD",
+  "description": "Test cash payment"
+}
+
+
+### Test 2b: Create card payment
+POST http://localhost:8085/api/payments
+Content-Type: application/json
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+{
+  "orderId": "550e8400-e29b-41d4-a716-446655440001",
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "paymentMethod": "CARD",
+  "paymentGateway": "STRIPE",
+  "amount": 45.50,
+  "currencyCode": "USD",
+  "description": "Test card payment",
+  "cardLastFour": "4242",
+  "cardBrand": "VISA",
+  "cardType": "CREDIT"
+}
+
+### Test 3: Retrieve Payments
+
+# Test 3a: Get payment by ID
+GET http://localhost:8085/api/payments/4a891588-81bf-4eed-8a6d-2e893fe35bb0
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 3b: Get payment by reference
+GET http://localhost:8085/api/payments/reference/PAY-20250928175424-2411
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 3c: Get payment by order ID
+GET http://localhost:8085/api/payments/order/5446073c-525c-4d33-8d89-686a0309c86d
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 3d: Get payments by user
+GET http://localhost:8085/api/payments/user/123e4567-e89b-12d3-a456-426614174000
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 4: Admin Operations
+
+# Test 4a: Get all payments (Admin only)
+GET http://localhost:8085/api/payments?page=0&size=10
+X-User-Role: ADMIN
+
+### Test 4b: Get payments by status
+GET http://localhost:8085/api/payments/status/COMPLETED
+X-User-Role: ADMIN
+
+### Test 4c: Update payment status
+PATCH http://localhost:8085/api/payments/8b1082d1-a3cf-4c78-855a-216c73cd6dc8/status
+Content-Type: application/json
+X-User-Role: ADMIN
+
+{
+  "status": "COMPLETED",
+  "reason": "Manual confirmation",
+  "notes": "Payment verified by admin"
+}
+
+### Test 5: Payment Management
+
+# Test 5a: Cancel payment
+POST http://localhost:8085/api/payments/8b1082d1-a3cf-4c78-855a-216c73cd6dc8/cancel
+Content-Type: application/json
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+{
+  "reason": "Customer requested cancellation"
+}
+
+### Test 5b: Retry failed payment
+POST http://localhost:8085/api/payments/8b1082d1-a3cf-4c78-855a-216c73cd6dc8/retry
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 6: Refund Operations
+
+# Test 6a: Create refund
+POST http://localhost:8085/api/refunds
+Content-Type: application/json
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+{
+  "paymentId": "8b1082d1-a3cf-4c78-855a-216c73cd6dc8",
+  "amount": 10.00,
+  "reason": "Partial refund for damaged item",
+  "requestedBy": "123e4567-e89b-12d3-a456-426614174000"
+}
+
+### Test 6b: Get refund by ID
+GET http://localhost:8085/api/refunds/REFUND_ID_HERE
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 6c: Get refunds by payment
+GET http://localhost:8085/api/refunds/payment/8b1082d1-a3cf-4c78-855a-216c73cd6dc8
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 7: Admin Refund Management
+
+### Test 7a: Get pending refunds
+GET http://localhost:8085/api/refunds/pending
+X-User-Role: ADMIN
+
+### Test 7b: Approve refund
+POST http://localhost:8085/api/refunds/REFUND_ID_HERE/approve
+X-User-Id: admin-user-id
+X-User-Role: ADMIN
+
+### Test 7c: Reject refund
+POST http://localhost:8085/api/refunds/78f4a476-13ff-4d8e-9728-689834775ca4/reject
+Content-Type: application/json
+X-User-Id: admin-user-id
+X-User-Role: ADMIN
+
+{
+  "reason": "Refund request does not meet policy requirements"
+}
+
+### Test 8: Transaction Tracking
+
+### Test 8a: Get transactions by payment
+GET http://localhost:8085/api/transactions/payment/PAYMENT_ID_HERE
+X-User-Role: ADMIN
+
+### Test 8b: Get pending transactions
+GET http://localhost:8085/api/transactions/pending
+X-User-Role: ADMIN
+
+# Test 8c: Get failed transactions
+GET http://localhost:8085/api/transactions/failed
+X-User-Role: ADMIN
+
+### Test 9: Analytics & Statistics
+
+### Test 9a: Payment statistics
+GET http://localhost:8085/api/payments/statistics?startDate=2025-09-01T00:00:00&endDate=2025-09-30T23:59:59
+X-User-Role: ADMIN
+
+### Test 9b: Refund statistics
+GET http://localhost:8085/api/refunds/statistics?startDate=2025-09-01T00:00:00&endDate=2025-09-30T23:59:59
+X-User-Role: ADMIN
+
+### Test 9c: Transaction statistics
+GET http://localhost:8085/api/transactions/statistics?startDate=2025-09-01T00:00:00&endDate=2025-09-30T23:59:59
+X-User-Role: ADMIN
+
+### Test 10: Through API Gateway
+
+# Test 10a: Create payment through Gateway
+POST http://localhost:8080/api/payments
+Content-Type: application/json
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+{
+  "orderId": "550e8400-e29b-41d4-a716-446655440002",
+  "userId": "123e4567-e89b-12d3-a456-426614174000",
+  "paymentMethod": "DIGITAL_WALLET",
+  "amount": 32.75,
+  "digitalWalletProvider": "PayPal"
+}
+
+### Test 10b: Get payments through Gateway
+GET http://localhost:8080/api/payments/user/123e4567-e89b-12d3-a456-426614174000
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+### Test 11: Error Scenarios
+
+# Test 11a: Invalid payment data
+POST http://localhost:8085/api/payments
+Content-Type: application/json
+
+// Expected Response:
+// {
+//   "error": "Invalid payment data",
+//   "details": [
+//     "orderId must be a valid UUID",
+//     "amount must be positive"
+//   ]
+// }
+
+{
+  "orderId": "invalid-uuid",
+  "amount": -10.00
+}
+
+
+### Test 11b: Access control (should return 403)
+GET http://localhost:8085/api/payments/user/different-user-id
+X-User-Id: 123e4567-e89b-12d3-a456-426614174000
+X-User-Role: USER
+
+// Expected Response:
+// {
+//   "error": "Forbidden",
+//   "message": "You are not authorized to access this resource."
+// }
+
+### Test 11c: Non-existent payment
+GET http://localhost:8085/api/payments/00000000-0000-0000-0000-000000000000
+
+// Expected Response:
+// {
+//   "error": "Not Found",
+//   "message": "Payment not found"
+// }
